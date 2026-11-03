@@ -84,19 +84,19 @@ describe("shared hosted-page integration boundary", () => {
     expect(options.userMetadata.sessionRecording).toBe("false");
   });
 
-  it.each([undefined, { country: "US" }])("keeps Verified and managed proxies enabled with location %j", (location) => {
+  it.each([undefined, { country: "US" }])("includes managed proxies only for an explicit location (free-tier default off) with location %j", (location) => {
     const options = browserbaseLaunchOptions("test-key", "test-context", location);
     expect(options.browserSettings).toMatchObject({
-      verified: true,
+      verified: false,
       context: { id: "test-context", persist: true },
     });
     expect(options.keepAlive).toBe(true);
     expect(options.proxies).toEqual(location
       ? [{ type: "browserbase", geolocation: location }]
-      : true);
+      : false);
   });
 
-  it("retries hosted failures with Verified enabled and never falls back to local Chrome", async () => {
+  it("does not retry a hosted session create (single attempt, no local fallback)", async () => {
     vi.useFakeTimers();
     vi.stubEnv("STAGEHAND_BROWSER", "browserbase");
     vi.stubEnv("BROWSERBASE_API_KEY", "test-key");
@@ -110,9 +110,9 @@ describe("shared hosted-page integration boundary", () => {
     const failure = expect(session.start()).rejects.toThrow("Synthetic launch failure");
     await vi.runAllTimersAsync();
     await failure;
-    expect(launch).toHaveBeenCalledTimes(3);
+    expect(launch).toHaveBeenCalledTimes(1);
     for (const [options] of launch.mock.calls) {
-      expect(options).toMatchObject({ proxies: true, browserSettings: { verified: true } });
+      expect(options).toMatchObject({ browserSettings: { verified: false } });
     }
     expect(localLaunch).not.toHaveBeenCalled();
   });

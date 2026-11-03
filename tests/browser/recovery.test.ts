@@ -50,12 +50,12 @@ describe("browser recovery", () => {
     expect(browserProvider()).toBe("browserbase");
   });
 
-  it("always launches hosted browsers with a proxy and a verified identity", () => {
+  it("launches hosted browsers with free-tier-safe defaults (no proxies, no verified, no captcha solver)", () => {
     expect(browserbaseLaunchOptions("bb_test_example")).toMatchObject({
       apiKey: "bb_test_example",
-      proxies: true,
+      proxies: false,
       keepAlive: true,
-      browserSettings: { verified: true, solveCaptchas: true },
+      browserSettings: { verified: false, solveCaptchas: false },
     });
   });
 
@@ -86,7 +86,7 @@ describe("browser recovery", () => {
     expect(browserbaseLaunchOptions("bb_test_example")).toMatchObject({
       projectId: "project_example",
       browserSettings: {
-        verified: true,
+        verified: false,
         context: { id: "context_example", persist: true },
       },
     });
@@ -96,8 +96,8 @@ describe("browser recovery", () => {
     process.env.BROWSERBASE_CONTEXT_ID = "context_new_default";
     expect(browserbaseLaunchOptions("bb_test_example", "context_saved_task")).toMatchObject({
       browserSettings: {
-        verified: true,
-        solveCaptchas: true,
+        verified: false,
+        solveCaptchas: false,
         context: { id: "context_saved_task", persist: true },
       },
     });

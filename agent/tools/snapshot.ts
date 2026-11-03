@@ -9,7 +9,17 @@ export default defineTool({
   inputSchema: z.object({}),
   async execute(_input, ctx) {
     return runCancelableBrowserWork(ctx.session.id, ctx.abortSignal, () =>
-      runBrowserOperation(ctx.session.id, (browser) => browser.snapshot()),
+      runBrowserOperation(
+        ctx.session.id,
+        async (browser) => {
+          const tree = await browser.snapshot();
+          // Also capture a PNG so the UI can show the page state inline.
+          // Non-fatal: snapshot still succeeds if the screenshot fails.
+          try { await browser.screenshot(); } catch { /* ignore */ }
+          return tree;
+        },
+        true,
+      ),
     );
   },
   toModelOutput(output) {

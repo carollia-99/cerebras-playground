@@ -62,6 +62,7 @@ export class BrowserSession {
     private readonly options: {
       contextId?: string;
       proxyLocation?: BrowserProxyLocation;
+      eveSessionId?: string;
       ensureContext?: (
         currentContextId?: string,
       ) => Promise<{ id: string; status: "draft" | "saved" }>;
@@ -624,11 +625,14 @@ export class BrowserSession {
     }
 
     let lastError: unknown;
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    // Retry budget kept at 1 for the demo. Browserbase's 5-sessions/min burst
+    // cap means a 3-attempt loop burns the quota on a single failure.
+    const maxAttempts = 1;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       let launched: StagehandBrowser | undefined;
       try {
         launched = await stagehandBrowserbase.launch(
-          browserbaseLaunchOptions(apiKey, this.options.contextId, this.options.proxyLocation),
+          browserbaseLaunchOptions(apiKey, this.options.contextId, this.options.proxyLocation, this.options.eveSessionId),
         );
         await this.attachStagehand(launched);
         if (!launched.sessionId)
@@ -646,12 +650,12 @@ export class BrowserSession {
           this.remoteSessionId = launched.sessionId;
           await this.releaseRemoteSession();
         }
-        if (attempt < 3) {
+        if (attempt < maxAttempts) {
           addTrace(
             this.state,
             "system",
             "browser.start.retry",
-            `The Browserbase connection failed. Bell will retry with a new verified, proxied session (${attempt}/3).`,
+            `The Browserbase connection failed. Bell will retry with a new verified, proxied session (${attempt}/${maxAttempts}).`,
             { attempt, proxies: true, verified: true },
           );
           await new Promise((resolve) => setTimeout(resolve, attempt * 500));
@@ -898,10 +902,16 @@ export function browserbaseLaunchOptions(
   apiKey: string,
   durableContextId?: string,
   proxyLocation?: BrowserProxyLocation,
+  eveSessionId?: string,
 ) {
   const contextId = durableContextId ?? process.env.BROWSERBASE_CONTEXT_ID;
   const projectId = process.env.BROWSERBASE_PROJECT_ID;
   if (personalBrowserEnabled() && contextId) throw new Error("Personal 1Password cannot use a reusable Context.");
+  // Browserbase paid-plan features: proxies, verified sessions, captcha solving.
+  // Default to off; opt in with BELL_BROWSERBASE_{PROXIES,VERIFIED,CAPTCHAS}=on.
+  const proxiesEnabled = (process.env.BELL_BROWSERBASE_PROXIES ?? "off").toLowerCase() !== "off";
+  const verified = (process.env.BELL_BROWSERBASE_VERIFIED ?? "off").toLowerCase() !== "off";
+  const solveCaptchas = (process.env.BELL_BROWSERBASE_CAPTCHAS ?? "off").toLowerCase() !== "off";
   return {
     apiKey,
     ...(personalBrowserEnabled() ? { extensionId: process.env.BROWSERBASE_1PASSWORD_EXTENSION_ID!.trim() } : {}),
@@ -913,13 +923,13 @@ export function browserbaseLaunchOptions(
             geolocation: proxyLocation,
           },
         ]
-      : true,
+      : proxiesEnabled,
     keepAlive: true,
     browserSettings: {
-      verified: true,
+      verified,
       logSession: false,
       recordSession: false,
-      solveCaptchas: true,
+      solveCaptchas,
       ...(contextId ? { context: { id: contextId, persist: true } } : {}),
     },
     userMetadata: {
@@ -927,6 +937,7 @@ export function browserbaseLaunchOptions(
       transport: "stagehand-v4-eve",
       networkLogging: "false",
       sessionRecording: "false",
+      ...(eveSessionId ? { eveSessionId } : {}),
       ...(personalBrowserEnabled() ? { onepasswordExtension: process.env.BROWSERBASE_1PASSWORD_EXTENSION_ID!.trim(), privateContext: "true" } : {}),
     },
   };

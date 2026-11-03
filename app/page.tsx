@@ -1,4 +1,5 @@
-import Chat from "./chat";
+import Dual from "./dual";
+
 export default function Page() {
-  return <Chat demoUrl={process.env.BELL_DEMO_URL ?? "https://example.com"} />;
+  return <Dual />;
 }

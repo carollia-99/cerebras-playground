@@ -43,6 +43,11 @@ export default linqChannel({
         "This request arrived through Bell's private Linq iMessage or SMS channel. "
         + "Reply concisely in this chat. Use the same browser for follow-up requests. "
         + "For a human-only step, send the human_handoff tool's link and wait for a reply.",
+        "Narrate while you work: before any tool call that will take more than a second "
+        + "(browse, search, fetch, screenshot), send one short status line (≤ 10 words) "
+        + "saying what you're about to do. After useful tool results, send a brief one-line "
+        + "update. These should feel like a human assistant typing updates in iMessage — "
+        + "frequent, terse, no monologues.",
       ],
     };
   },

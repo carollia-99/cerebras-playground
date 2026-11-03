@@ -327,6 +327,7 @@ function createRuntimeBrowser(
   return new BrowserSession(state, {
     contextId,
     proxyLocation,
+    eveSessionId: sessionId,
     captcha: taskState.get().captcha,
     ensureContext: personalBrowserEnabled() ? undefined : async (currentContextId) => {
       const context = await ensureAgentContext(sessionId, currentContextId);

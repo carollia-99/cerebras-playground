@@ -91,7 +91,10 @@ describe("Bell's signed Linq webhook", () => {
     expect(from).toHaveBeenCalledWith(expect.stringContaining(event.data.chat.id));
     expect(dispatch).toHaveBeenCalledOnce();
     expect(dispatch).toHaveBeenCalledWith(event.data.parts[0].value, expect.objectContaining({
-      context: [expect.stringContaining("Bell's private Linq")],
+      context: [
+        expect.stringContaining("Bell's private Linq"),
+        expect.stringContaining("Narrate while you work"),
+      ],
       auth: expect.objectContaining({ principalId: "linq:sender-handle-id", principalType: "user" }),
       state: { thread: expect.objectContaining({ isDM: true }) },
     }));
